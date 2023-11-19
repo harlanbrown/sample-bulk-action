@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<component name="org.nuxeo.sample.bulk.action" version="1.0.0">
+
+  <require>org.nuxeo.ecm.core.bulk</require>
+  <require>org.nuxeo.ecm.core.bulk.config</require>
+  <require>org.nuxeo.runtime.stream.service</require>
+
+  <extension target="org.nuxeo.ecm.core.bulk" point="actions">
+    <action name="sample" inputStream="bulk/sample" bucketSize="100" batchSize="10" httpEnabled="true" sequentialCommands="true"/>
+  </extension>
+
+  <extension target="org.nuxeo.runtime.stream.service" point="streamProcessor">
+    <streamProcessor name="sample"
+                     class="org.nuxeo.sample.bulk.actions.SampleBulkAction"
+                     defaultConcurrency="1"
+                     defaultPartitions="1">
+      <policy name="default" maxRetries="3" delay="1s" continueOnFailure="true"/>
+    </streamProcessor>
+  </extension>
+</component>

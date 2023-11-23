@@ -64,73 +64,14 @@ public class SampleBulkAction implements StreamProcessorTopology {
                        .build();
     }
 
-    public static class SampleBulkComputation extends AbstractBulkComputation {
-
-        protected final boolean failOnError;
-
-        public SampleBulkComputation(String name) {
-            super(name);
-            this.failOnError = false;
-        }
-
-        @Override
-        protected void compute(CoreSession session, List<String> ids, Map<String, Serializable> properties) {
-        }
-    }
-
-    public static class SampleDoneComputation extends AutomationComputation {
-
-        String OPERATION_NAME = "Document.SetProperty";
-        protected Codec<BulkStatus> codec;
-
-        public SampleDoneComputation(String actionFullName, boolean failOnError) {
-            super(actionFullName, failOnError);
-        }
-
-        @Override
-        public void init(ComputationContext context) {
-            super.init(context);
-            this.codec = BulkCodecs.getStatusCodec();
-        }
-
-        /// to simplify this we gotta know where the record's coming from -- processRecord comes before compute -- maybe we override both
-        @Override 
-        protected void compute(CoreSession session, List<String> ids, Map<String, Serializable> properties) {
-//            BulkStatus status = codec.decode(record.getData());
-//            BulkService bulkService = Framework.getService(BulkService.class);
-//            BulkCommand command = bulkService.getCommand(status.getId());
-//            String parentId = (String) command.getParam("parentId");
-//            String message = status.toString();
-//            if (parentId != null) {
-//                updateParent(session, parentId, message);
-//            }
-        }
-
-        public void updateParent(CoreSession session, String parentId, String message) {
-            OperationContext ctx = new OperationContext(session);
-            Map<String, Object> params = new HashMap<String, Object>();
-            DocumentModel doc = session.getDocument(new IdRef(parentId)); 
-            ctx.setInput(doc);
-            params.put("xpath", "dc:description");
-            params.put("value", message);
-            params.put("save", true);
-
-            try {
-                Object result = service.run(ctx, OPERATION_NAME, params);
-            } catch (OperationException e) {
-                throw new NuxeoException(e);
-            }
-        }
-    }
-
-    public static class SampleDoneComputationOld extends AbstractComputation {
+    public static class SampleDoneComputation extends AbstractComputation {
 
         protected final boolean failOnError;
         protected Codec<BulkStatus> codec;
 
         String OPERATION_NAME = "Document.SetProperty";
 
-        public SampleDoneComputationOld() {
+        public SampleDoneComputation(String name, boolean failOnError) {
             super("SampleDone", 1, 1);
             this.failOnError = false;
         }

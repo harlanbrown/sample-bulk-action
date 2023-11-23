@@ -1,0 +1,4 @@
+Bundle-Name: sample-bulk-action-test
+Bundle-Vendor: org.nuxeo.sample
+Bundle-SymbolicName: org.nuxeo.sample.sample-bulk-action.test;singleton=true
+Nuxeo-Component: OSGI-INF/test-bulk-action-contrib.xml

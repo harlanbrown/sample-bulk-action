@@ -7,11 +7,18 @@
 
   <extension target="org.nuxeo.ecm.core.bulk" point="actions">
     <action name="sample" inputStream="bulk/sample" bucketSize="100" batchSize="10" httpEnabled="true" sequentialCommands="true"/>
+    <action name="sample2" inputStream="bulk/sample2" bucketSize="100" batchSize="10" httpEnabled="true" sequentialCommands="true"/>
   </extension>
 
   <extension target="org.nuxeo.runtime.stream.service" point="streamProcessor">
     <streamProcessor name="sample"
                      class="org.nuxeo.sample.bulk.actions.SampleBulkAction"
+                     defaultConcurrency="1"
+                     defaultPartitions="1">
+      <policy name="default" maxRetries="3" delay="1s" continueOnFailure="true"/>
+    </streamProcessor>
+    <streamProcessor name="sample2"
+                     class="org.nuxeo.sample.bulk.actions.SimplifiedSampleBulkAction"
                      defaultConcurrency="1"
                      defaultPartitions="1">
       <policy name="default" maxRetries="3" delay="1s" continueOnFailure="true"/>

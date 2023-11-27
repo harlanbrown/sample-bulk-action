@@ -24,6 +24,7 @@ import org.nuxeo.runtime.test.runner.FeaturesRunner;
 import org.nuxeo.runtime.test.runner.TransactionalFeature;
 import org.nuxeo.ecm.automation.test.AutomationFeature;
 import org.nuxeo.sample.bulk.actions.SampleBulkAction;
+import org.nuxeo.sample.bulk.actions.SimplifiedSampleBulkAction;
 
 @RunWith(FeaturesRunner.class)
 @Features({ AutomationFeature.class })
@@ -54,6 +55,43 @@ public class TestSampleBulkAction {
 
         String query = "SELECT * FROM File";
         BulkCommand bulkCommand = new BulkCommand.Builder(SampleBulkAction.ACTION_NAME, query, "system")
+                .repository(session.getRepositoryName())
+                .param("operationId", "Document.Update")
+                .param("parameters", automationParams)
+                .param("parentId", parentId)
+                .build();
+
+        String commandId = bulkService.submit(bulkCommand);
+
+        txFeature.nextTransaction();
+
+        BulkStatus status = bulkService.getStatus(commandId);
+        assertNotNull(status);
+        assertEquals(COMPLETED, status.getState());
+
+        domain = session.getDocument(new PathRef("/default-domain"));
+        assertNotNull(domain.getPropertyValue("dc:description"));
+
+        fileDoc = session.getDocument(new PathRef("/fileDoc"));
+        assertEquals("hi",fileDoc.getPropertyValue("dc:description"));
+
+    }
+
+    @Test
+    public void shouldLaunchSimplifiedSampleBulkAction() {
+
+        DocumentModel domain = session.getDocument(new PathRef("/default-domain"));
+        String parentId = domain.getId();
+
+        DocumentModel fileDoc = session.createDocumentModel("/","fileDoc","File");
+        fileDoc = session.createDocument(fileDoc);
+        session.saveDocument(fileDoc);
+        
+        var automationParams = new HashMap<>();
+        automationParams.put("properties","dc:description=hi");
+
+        String query = "SELECT * FROM File";
+        BulkCommand bulkCommand = new BulkCommand.Builder(SimplifiedSampleBulkAction.ACTION_NAME, query, "system")
                 .repository(session.getRepositoryName())
                 .param("operationId", "Document.Update")
                 .param("parameters", automationParams)

@@ -55,25 +55,22 @@ public class SampleBulkAction implements StreamProcessorTopology {
     
     @Override
     public Topology getTopology(Map<String, String> options) {
-        boolean failOnError = false;
         return Topology.builder()
-                       .addComputation(() -> new AutomationComputation(ACTION_FULL_NAME, failOnError),
+                       .addComputation(() -> new AutomationComputation(ACTION_FULL_NAME, false),
                                Arrays.asList(INPUT_1 + ":" + ACTION_FULL_NAME, OUTPUT_1 + ":" + STATUS_STREAM))
-                       .addComputation(() -> new SampleDoneComputation("bulk/sampleDone",failOnError), 
+                       .addComputation(() -> new SampleDoneComputation("bulk/sampleDone"), 
                                Collections.singletonList(INPUT_1 + ":" + DONE_STREAM))
                        .build();
     }
 
     public static class SampleDoneComputation extends AbstractComputation {
 
-        protected final boolean failOnError;
         protected Codec<BulkStatus> codec;
 
         String OPERATION_NAME = "Document.SetProperty";
 
-        public SampleDoneComputation(String name, boolean failOnError) {
+        public SampleDoneComputation(String name) {
             super("SampleDone", 1, 1);
-            this.failOnError = false;
         }
 
         @Override
@@ -85,28 +82,32 @@ public class SampleBulkAction implements StreamProcessorTopology {
         @Override
         public void processRecord(ComputationContext context, String inputStream, Record record) {
             BulkStatus status = codec.decode(record.getData());
-            BulkService bulkService = Framework.getService(BulkService.class);
-            BulkCommand command = bulkService.getCommand(status.getId());
-            String parentId = (String) command.getParam("parentId");
-            String message = status.toString();
+            if (ACTION_NAME.equals(status.getAction())
+                    && BulkStatus.State.COMPLETED.equals(status.getState())) {
 
-            if (parentId != null) {
+                BulkService bulkService = Framework.getService(BulkService.class);
+                BulkCommand command = bulkService.getCommand(status.getId());
+                String parentId = (String) command.getParam("parentId");
+                String message = status.toString();
 
-                int timeout = (int) requireNonNullElse(command.getBatchTransactionTimeout(), Duration.ZERO).toSeconds();
+                if (parentId != null) {
 
-                TransactionHelper.runInTransaction(timeout, () -> {
-                    try {
-                        String username = command.getUsername();
-                        String repository = command.getRepository();
-                        try (NuxeoLoginContext ignored = loginSystemOrUser(username)) {
-                            CoreSession session = CoreInstance.getCoreSession(repository);
-                            updateParent(session, parentId, message); 
+                    int timeout = (int) requireNonNullElse(command.getBatchTransactionTimeout(), Duration.ZERO).toSeconds();
+
+                    TransactionHelper.runInTransaction(timeout, () -> {
+                        try {
+                            String username = command.getUsername();
+                            String repository = command.getRepository();
+                            try (NuxeoLoginContext ignored = loginSystemOrUser(username)) {
+                                CoreSession session = CoreInstance.getCoreSession(repository);
+                                updateParent(session, parentId, message); 
+                            }
+                        } catch (LoginException e) {
+                            throw new NuxeoException(e);
                         }
-                    } catch (LoginException e) {
-                        throw new NuxeoException(e);
-                    }
-                });
+                    });
 
+                }
             }
 
             context.askForCheckpoint();
